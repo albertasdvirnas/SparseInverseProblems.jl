@@ -1,12 +1,21 @@
+cd("/home/albyback/git/dotlabelproject/OuterProject/SparseInverseProblems.jl/examples/simple_example/")
 include("simple_example.jl")
-using Gadfly, Compose
+using Compose
 evaluation_points = -5.0:0.25:5.0
 model = SimpleExample(evaluation_points, -10.0:0.5:10.0)
 means = [-2.0,1.0,3.5]
 k = length(means)
-weights = ones(k)+randn(k)*0.1
+weights = ones(k)+randn(k)*0.3
 weights[1] = 0.2
-target = max(phi(model,means',weights) + randn(length(evaluation_points))*0.1,0.0);
+target = max.(phi(model,Matrix(means'),weights) + randn(length(evaluation_points))*0.1,0.0);
+
+# using Plots
+# using PlutoUI
+# using Images, FileIO
+# heatmap(model.grid, aspect_ratio=1, c=:grays)
+# plot(phi(model,Matrix(means'),weights) + randn(length(evaluation_points))*0.1)
+# plot(target)
+
 
 function callback(old_thetas,thetas, weights,output,old_obj_val)
   #evalute current OV
@@ -18,16 +27,29 @@ function callback(old_thetas,thetas, weights,output,old_obj_val)
   return false
 end
 
-(means_est,weights_est) = ADCG(model, LSLoss(), target,10000.0;  callback=callback)
+# ADCG(model, LSLoss(), target,10000.0;  callback=callback)
 
-#draw the observations alone
-draw(SVG("observations.svg", 5inch, 2inch), plot(x=evaluation_points,y=target))
+
+
+(means_est,weights_est) = ADCG(model, LSLoss(), target,100.0;  callback=callback)
+print(means_est)
+print(means)
+
+
+using Plots
+using PlutoUI
+using Images, FileIO
+
+# using PyPlot
+# pygui(true)
+# #draw the observations alone
+plot(evaluation_points, target)
 
 #draw the observations with the locations and weights of the true blurs
-anno = Guide.annotation(
-       compose(context(), circle([means,means], [zeros(k),weights], [2mm]), fill(nothing),
-       stroke("blue")))
-draw(SVG("truth.svg", 5inch, 2inch), plot(x=evaluation_points,y=target,anno))
+# anno = Guide.annotation(
+#        compose(context(), circle([means,means], [zeros(k),weights], [2mm]), fill(nothing),
+#        stroke("blue")))
+# draw(SVG("truth.svg", 5inch, 2inch), plot(x=evaluation_points,y=target,anno))
 
 
 #draw the estimation along with the predicted means/observations

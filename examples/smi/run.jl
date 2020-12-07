@@ -19,6 +19,8 @@ end
 
 const gb_sim = GaussBlur2D(sigmasq,64,500)
 
+
+
 function readImages(imageDir,nImages,n_pixels_x)
   imA = Array(Float64,n_pixels_x,n_pixels_x,nImages)
   for q = 1:nImages

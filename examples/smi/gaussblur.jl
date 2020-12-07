@@ -2,16 +2,17 @@ using SparseInverseProblems
 import SparseInverseProblems: lmo, phi, solveFiniteDimProblem, localDescent,
 getStartingPoint, parameterBounds, computeGradient
 using SparseInverseProblems.Util
+using SpecialFunctions
 
-immutable GaussBlur2D <: BoxConstrainedDifferentiableModel
+struct GaussBlur2D <: BoxConstrainedDifferentiableModel
   sigma :: Float64
   n_pixels :: Int64
   grid :: Vector{Float64} #this is small now.
   grid_f
   u :: Vector{Float64}
   l :: Vector{Float64}
-  GaussBlur2D(s,np,ng) = new(sqrt(s),np, linspace(0.0,1.0,ng),
-    computeFs(linspace(0.0,1.0,ng),np,sqrt(s)),
+  GaussBlur2D(s,np,ng) = new(sqrt(s),np, range(0.0,stop=1.0,length=ng),
+    computeFs(range(0.0,stop=1.0,length=ng),np,sqrt(s)),
     zeros(np), zeros(np))
 end
 
@@ -19,36 +20,48 @@ function getStartingPoint(model :: GaussBlur2D, v :: Vector{Float64})
   v = reshape(v, model.n_pixels, model.n_pixels)
   ng = length(model.grid)
   grid_objective_values = vec(model.grid_f'*v*model.grid_f)
-  best_point_lin_idx = indmin(grid_objective_values)
-  best_point_idx = ind2sub((ng,ng), best_point_lin_idx)
-  best_grid_score = grid_objective_values[best_point_lin_idx]
+  best_point_idx = argmin(grid_objective_values)
+  # println(best_point_idx)
+  # I = LinearIndices((ng,ng));
+# grid_objective_values
+  # heatmap(grid_objective_values)
+  # best_point_idx = I(CartesianIndices(best_point_lin_idx))
+  # best_point_idx = ind2sub((ng,ng), best_point_lin_idx)
+  best_grid_score = grid_objective_values[best_point_idx]
+  println(best_grid_score)
+  best_point_idx = CartesianIndices((ng,ng))[best_point_idx].I
+   # println([model.grid[best_point_idx[2]];model.grid[best_point_idx[1]]])
+
+
   return [model.grid[best_point_idx[2]];model.grid[best_point_idx[1]]]
 end
 
 parameterBounds(model :: GaussBlur2D) = ([0.0,0.0],[1.0,1.0])
 
+
 function computeGradient(model :: GaussBlur2D, weights :: Vector{Float64},
   thetas :: Matrix{Float64}, v :: Vector{Float64})
+  gradient=0
   v = reshape(v, model.n_pixels, model.n_pixels)
-
-  gradient = zeros(thetas)
-  #allocate temporary variables...
+  #
+  gradient = zeros(length(thetas))
+  # #allocate temporary variables...
   f_x = zeros(model.n_pixels)
-  f_y = zeros(f_x)
-  fpy = zeros(f_x)
-  fpx = zeros(f_x)
+  f_y = zeros(model.n_pixels)
+  fpy = zeros(model.n_pixels)
+  fpx = zeros(model.n_pixels)
   v_x = zeros(model.n_pixels)
   v_y = zeros(model.n_pixels)
   v_yp = zeros(model.n_pixels)
 
-  #compute gradient
+  # #compute gradient
   for i = 1:size(thetas,2)
     point = vec(thetas[:,i])
     computeFG(model, point[1], f_x, fpx)
     computeFG(model, point[2], f_y, fpy)
-    v_x = A_mul_B!(v_x,v,f_x)
-    v_y = At_mul_B!(v_y,v,f_y)
-    v_yp = At_mul_B!(v_yp,v,fpy)
+    v_x = mul!(v_x,v,f_x)
+    v_y = mul!(v_y,v,f_y)
+    v_yp = mul!(v_yp,v,fpy)
     function_value = dot(f_y, v_x)
     g_x = dot(v_y, fpx)
     g_y = dot(v_x, fpy)
@@ -89,7 +102,7 @@ function computeF!(f,sigma, u,l, x :: Float64)
   n_pixels = length(u)
   inc = 1.0/(sigma*n_pixels)
   xovers = x/sigma
-  const prefactor = sigma * sqrt(pi) / 2.0
+  prefactor = sigma * sqrt(pi) / 2.0
   @fastmath @inbounds @simd for i = 1:n_pixels
     u[i] = i*inc - xovers
     l[i] = (i-1)*inc - xovers
@@ -106,7 +119,7 @@ function computeFG(s :: GaussBlur2D, x :: Float64, f :: Vector{Float64}  = zeros
   l = s.l
   inc = 1.0/(s.sigma*n_pixels)
   xovers = x/s.sigma
-  const prefactor = s.sigma * sqrt(pi) / 2.0
+  prefactor = s.sigma * sqrt(pi) / 2.0
 
   @fastmath @inbounds @simd for i = 1:n_pixels
     u[i] = i*inc - xovers#(i - x)/s.sigma
@@ -125,14 +138,13 @@ function computeFG(s :: GaussBlur2D, x :: Float64, f :: Vector{Float64}  = zeros
   end
 end
 
-function phi(s :: GaussBlur2D, parameters :: Matrix{Float64},weights :: Vector{Float64})
+function phi(s :: GaussBlur2D, parameters :: Matrix{Float64},weights :: Matrix{Float64})
   n_pixels = s.n_pixels
   if size(parameters,2) == 0
     return zeros(n_pixels*n_pixels)
   end
-  v_x = computeFs(vec(parameters[1,:]),n_pixels,s.sigma)
+  v_x = computeFs(vec(parameters[1,:]),n_pixels,s.sigma).*weights
   v_y = computeFs(vec(parameters[2,:]),n_pixels,s.sigma)
-  scale!(v_x, weights)
   return vec(v_y*v_x')
 end
 

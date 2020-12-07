@@ -5,7 +5,7 @@ using NLopt, SparseInverseProblems.Util
 #
 # For concrete examples see examples/smi or examples/sysid.
 #
-abstract BoxConstrainedDifferentiableModel <: ForwardModel
+abstract type BoxConstrainedDifferentiableModel <: ForwardModel end
 
 #compute the measurement model
 psi(model :: BoxConstrainedDifferentiableModel, theta :: Vector{Float64}) =
@@ -49,7 +49,9 @@ end
 function lmo(model :: BoxConstrainedDifferentiableModel, v :: Vector{Float64})
   lb,ub = parameterBounds(model)
   initial_x = getStartingPoint(model, v)
+  println(initial_x)
   p = length(lb)
+  # println(p)
 
   function f_and_g!(point :: Vector{Float64}, gradient_storage :: Vector{Float64})
     output = phi(model,reshape(point,p,1), [1.0])
@@ -68,7 +70,7 @@ function lmo(model :: BoxConstrainedDifferentiableModel, v :: Vector{Float64})
   return (optx,optf)
 end
 
-immutable SupportUpdateProblem
+struct SupportUpdateProblem
   nPoints :: Int64
   p :: Int64
   s :: BoxConstrainedDifferentiableModel
@@ -87,8 +89,8 @@ function localDescent(s :: BoxConstrainedDifferentiableModel, lossFn :: Loss, th
   opt = Opt(NLopt.LD_MMA, length(thetas))
   initializeOptimizer!(s, opt)
   min_objective!(opt, f_and_g!)
-  lower_bounds!(opt, vec(repmat(lb,1,nPoints)))
-  upper_bounds!(opt, vec(repmat(ub,1,nPoints)))
+  lower_bounds!(opt, vec(repeat(lb,1,nPoints)))
+  upper_bounds!(opt, vec(repeat(ub,1,nPoints)))
   (optf,optx,ret) = optimize(opt, vec(thetas))
   return reshape(optx,p,nPoints)
 end
