@@ -1,3 +1,4 @@
+cd("git/SparseInverseProblems.jl")
 # Function to test running 2d simple ADCG
 
 
@@ -5,6 +6,7 @@
 
 # this uses a forked version
 # git clone https://github.com/marius311/SparseInverseProblems.jl.git
+Pkg.clone("git@github.com:albertasdvirnas/SparseInverseProblems.jl.git")
 # which includes a toml file and some
 # modifications for this to run in Julia properly
 

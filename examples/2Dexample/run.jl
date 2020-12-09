@@ -1,6 +1,17 @@
+using Revise
+
+cd("/home/albyback/git/SparseInverseProblems.jl/")
+
 using SparseInverseProblems
-cd("examples/2Dexample/")
-include("gauss2d.jl")
+
+# using SparseInverseProblems
+
+# cd("examples/2Dexample/")
+include("examples/2Dexample/gauss2d.jl")
+
+
+# cd("examples/2Dexample/")
+# include("gauss2d.jl")
 
 # Download data.
 if !isdir("data")
@@ -63,7 +74,7 @@ end
 #
 # Generate simulation
 gb_sim,y,parameters,weights,noise_mean = gensim()
-heatmap()
+# heatmap()
 imageArray = reshape(y,64,64,1)
 
 results = runFW(gb_sim,imageArray,noise_mean)
