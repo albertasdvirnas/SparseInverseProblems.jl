@@ -49,7 +49,7 @@ end
 function lmo(model :: BoxConstrainedDifferentiableModel, v :: Vector{Float64})
   lb,ub = parameterBounds(model)
   initial_x = getStartingPoint(model, v)
-  println(initial_x)
+  # println(initial_x)
   p = length(lb)
   # println(p)
 
@@ -76,7 +76,7 @@ function lmo(model :: BoxConstrainedDifferentiableModel, v :: Vector{Float64})
   lower_bounds!(opt, lb)
   upper_bounds!(opt, ub)
   (optf,optx,ret) = optimize(opt, initial_x)
-  return (optx,optf,initial_x)
+  return (optx,optf)
 end
 
 struct SupportUpdateProblem
