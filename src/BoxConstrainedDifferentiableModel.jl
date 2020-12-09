@@ -49,17 +49,26 @@ end
 function lmo(model :: BoxConstrainedDifferentiableModel, v :: Vector{Float64})
   lb,ub = parameterBounds(model)
   initial_x = getStartingPoint(model, v)
-  println(initial_x)
+  # println(initial_x)
   p = length(lb)
   # println(p)
 
-  function f_and_g!(point :: Vector{Float64}, gradient_storage :: Vector{Float64})
-    output = phi(model,reshape(point,p,1), [1.0])
+  function f_and_g!(point :: Vector{Float64},gradient_storage :: Vector{Float64})
+    output = phi(model,reshape(point,p,1), ones(1,1))
     ip = dot(output,v)
     s = sign(ip)
     gradient_storage[:] = -s*computeGradient(model, [1.0],reshape(point,length(point),1), v)
+    # gradient_storage[:] = -s*computeGradient(model, [1.0],reshape(point,length(point),1), v)
     return -s*ip
   end
+  #
+  # function f_and_g!(point :: Vector{Float64}, gradient_storage :: Vector{Float64})
+  #   output = phi(model,reshape(point,p,1), [1.0])
+  #   ip = dot(output,v)
+  #   s = sign(ip)
+  #   gradient_storage[:] = -s*computeGradient(model, [1.0],reshape(point,length(point),1), v)
+  #   return -s*ip
+  # end
 
   opt = Opt(:LD_MMA, p)
   initializeOptimizer!(model, opt)

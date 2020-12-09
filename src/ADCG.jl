@@ -19,6 +19,7 @@ function ADCG(sim :: ForwardModel, lossFn :: Loss, y :: Vector{Float64}, tau :: 
     objective_value, grad = loss(lossFn, residual)
     #compute the next parameter value to add to the support
     theta,score = lmo(sim,grad)
+    # println(theta)
     #score is - |<\psi(theta), gradient>|
     #update the lower bound on the optimal value
     bound = max(bound, objective_value+score*tau-dot(output,grad))
